@@ -20,6 +20,7 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
 
 const CITIES = [
   { name: "New York",    lat: 40.71,  lon: -74.01,  tz: "America/New_York" },
+  { name: "Vancouver",   lat: 49.28,  lon: -123.12, tz: "America/Vancouver" },
   { name: "London",      lat: 51.51,  lon: -0.13,   tz: "Europe/London" },
   { name: "Seoul",       lat: 37.57,  lon: 126.98,  tz: "Asia/Seoul" },
   { name: "Tokyo",       lat: 35.68,  lon: 139.69,  tz: "Asia/Tokyo" },
