@@ -2,7 +2,7 @@
 
 What's in the sky above you tonight: the real stars, planets, the Moon and passing satellites, for any place on Earth. Built step by step as a learning project in JavaScript, Python and APIs.
 
-**Live demo:** _add your GitHub Pages link here_
+**Live demo:** : https://yoongiverse.github.io/Overhead/
 
 ## Build log
 
