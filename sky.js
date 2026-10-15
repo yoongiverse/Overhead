@@ -1034,6 +1034,22 @@ function openCoords(open) {
   if (open) latInput.focus();
 }
 $("coords-toggle").addEventListener("click", () => openCoords(coordsForm.hidden));
+// Close the Coordinates dropdown when you press Esc or click somewhere else.
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !coordsForm.hidden) openCoords(false); });
+document.addEventListener("pointerdown", e => {
+  if (!coordsForm.hidden && !e.target.closest("#coords, #coords-toggle, #city")) openCoords(false);
+});
+
+// Keep the report panels just below the top bar, even when the bar wraps onto two lines.
+const dock = document.querySelector(".dock");
+function placePanels() {
+  const wide = window.innerWidth > 760;
+  const top = wide ? `${Math.round(dock.getBoundingClientRect().bottom + 14)}px` : "";
+  report.style.top = top;
+  $("space-panel").style.top = top;
+}
+new ResizeObserver(placePanels).observe(dock);
+window.addEventListener("resize", placePanels);
 coordsForm.addEventListener("submit", e => {
   e.preventDefault();
   const lat = parseFloat(latInput.value), lon = parseFloat(lonInput.value);
@@ -1042,6 +1058,7 @@ coordsForm.addEventListener("submit", e => {
     return;
   }
   citySelect.value = "custom";
+  openCoords(false);
   flyTo({ name: "Custom place", lat, lon, tz: null });
 });
 $("locate").addEventListener("click", () => {
@@ -1161,6 +1178,7 @@ window.addEventListener("DOMContentLoaded", () => {
   latInput.value = place.lat.toFixed(2); lonInput.value = place.lon.toFixed(2);
   leaderLine.style.display = "none";
   resize();
+  placePanels();
   recomputeSky();
   updateReport();
   lastSkyUpdate = performance.now();
