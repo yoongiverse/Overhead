@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Overhead</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600&family=Sora:wght@300;400;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<!-- All the looks (glass, glow, motion) live in styles.css -->
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- 1. The 3D view. three.js draws into this canvas, behind everything else. -->
+  <canvas id="sky" aria-label="The night sky. Drag to look around, scroll to zoom, click a star or planet to identify it."></canvas>
+
+  <!-- 2. Floating labels, the line to a selected object, and the hover ring. -->
+  <div id="labels" aria-hidden="true"></div>
+  <svg id="leader" aria-hidden="true"><line id="leader-line" x1="0" y1="0" x2="0" y2="0"></line></svg>
+  <div id="reticle" hidden aria-hidden="true"></div>
+  <div id="hover" hidden aria-hidden="true"></div>
+  <div id="hover-tip" class="glass" hidden aria-hidden="true"></div>
+  <div id="warp" aria-hidden="true"></div>
+
+  <!-- 3. The glass heads-up display on top. -->
+  <div class="hud">
+
+    <div class="brand rise" style="--d:.2s">
+      <span class="wordmark">Overhead</span>
+      <span class="tag" id="tagline">Live sky</span>
+    </div>
+
+    <div class="dock glass rise" style="--d:.35s" role="group" aria-label="Controls">
+      <label class="sr-only" for="city">City</label>
+      <select id="city" class="sky-only"></select>
+      <button id="locate" class="chip sky-only" title="Use my location">◎ My location</button>
+      <button id="coords-toggle" class="chip sky-only" aria-expanded="false" aria-controls="coords">Coordinates</button>
+      <button id="con-toggle" class="chip sky-only" aria-pressed="false">✦ Constellations</button>
+      <button id="daylight-toggle" class="chip sky-only" aria-pressed="true" title="Turn off to see the stars even in daytime">☀ Daylight on</button>
+      <button id="space-toggle" class="chip space-btn">☉ Solar system</button>
+      <form id="coords" class="coords" hidden>
+        <label>Lat <input id="lat" inputmode="decimal" autocomplete="off"></label>
+        <label>Lon <input id="lon" inputmode="decimal" autocomplete="off"></label>
+        <button class="chip go" type="submit">Go</button>
+      </form>
+    </div>
+
+    <aside class="report glass rise sky-only" id="report" style="--d:.5s" aria-live="polite">
+      <div class="eyebrow">Tonight's report</div>
+      <div class="place" id="f-place">–</div>
+      <div class="sub" id="f-coords"></div>
+      <div class="facts">
+        <div class="fact"><span>Local time</span><b id="f-time">–</b><small id="f-tz"></small></div>
+        <div class="fact"><span>Is it dark?</span><b id="f-dark">–</b><small id="f-sun"></small></div>
+        <div class="fact"><span>Planets and Moon up</span><div class="pills" id="f-planets"></div><small id="f-planets-note"></small></div>
+        <div class="fact"><span>Stars above you</span><b id="f-count">0</b><small>of 5,044 naked-eye stars</small></div>
+        <div class="fact"><span>Brightest star up now</span><button class="link" id="f-bright">–</button><small id="f-look"></small></div>
+      </div>
+      <p class="credit">Stars: ESA Hipparcos via d3-celestial · Math: astronomy-engine</p>
+    </aside>
+
+    <!-- The solar system panel (only in the solar system view) -->
+    <aside class="report glass space-only" id="space-panel" aria-live="polite">
+      <div class="eyebrow">Solar system</div>
+      <div class="place" id="s-date">–</div>
+      <div class="sub">Real positions · sizes and distances not to scale</div>
+      <div class="planet-list" id="s-list"></div>
+    </aside>
+
+    <!-- One card for anything you click: a star, a planet, the Moon -->
+    <aside class="card glass" id="card" hidden aria-live="polite">
+      <button class="close" id="card-close" aria-label="Close details">×</button>
+      <div class="eyebrow" id="c-eyebrow"></div>
+      <div class="place" id="c-title"></div>
+      <div class="sub" id="c-sub"></div>
+      <div class="facts" id="c-facts"></div>
+    </aside>
+
+    <div class="facing rise sky-only" style="--d:.7s">
+      <b id="facing">Facing south</b>
+      <span>Drag to look around · Scroll to zoom · Point at a star or planet to name it, click for details</span>
+    </div>
+
+    <!-- Time controls (only in the solar system view) -->
+    <div class="timebar glass space-only" role="group" aria-label="Solar system time">
+      <button class="chip" id="t-now">Now</button>
+      <button class="chip" data-rate="0" aria-pressed="true">❚❚</button>
+      <button class="chip" data-rate="1">1 day/s</button>
+      <button class="chip" data-rate="7">1 week/s</button>
+      <button class="chip" data-rate="30">1 month/s</button>
+      <button class="chip" data-rate="365">1 year/s</button>
+    </div>
+
+    <div class="toast glass" id="toast" hidden role="status"></div>
+  </div>
+
+  <!-- 4. Scripts, in order: the 3D library, the sky-math library, our data, our code. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+  <script src="data/stars.js"></script>
+  <script src="data/constellations.js"></script>
+  <script src="data/planets.js"></script>
+  <script src="sky.js"></script>
+  <script src="space.js"></script>
+</body>
+</html>

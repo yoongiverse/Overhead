@@ -1,0 +1,287 @@
+/* =====================================================================
+   OVERHEAD · styles.css
+   The look: a full-screen sky with frosted-glass panels floating on top.
+   Layout: brand top-left, location dock top-right, report on the right,
+   star card bottom-left, "facing" readout bottom-center. Stacks on phones.
+   One deliberate night look, so it doesn't switch with light/dark mode.
+   ===================================================================== */
+
+/* ---------- 1. Design tokens: every color and font in one place ---------- */
+:root {
+  color-scheme: dark;
+  --void: #03050c;                         /* the background behind everything */
+  --glass: rgba(150, 180, 255, 0.075);     /* glass tint */
+  --glass-deep: rgba(10, 16, 34, 0.42);    /* darker glass for readability */
+  --edge: rgba(190, 215, 255, 0.16);       /* glass edge */
+  --edge-hi: rgba(225, 238, 255, 0.38);    /* top highlight on glass */
+  --fg: #eef2ff;                           /* main text */
+  --muted: #9aa7cc;                        /* secondary text */
+  --ice: #9fe6ff;                          /* holographic accent */
+  --gold: #ffd68a;                         /* starlight accent */
+  --f-display: "Unbounded", "Avenir Next", system-ui, sans-serif;
+  --f-body: "Sora", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --ease: cubic-bezier(.2, .8, .2, 1);     /* the "easy flow" curve used everywhere */
+}
+
+html, body { height: 100%; margin: 0; }
+body { background: var(--void); color: var(--fg); font: 14px/1.5 var(--f-body); overflow: hidden; }
+button, select, input { font: inherit; color: inherit; }
+[hidden] { display: none !important; }   /* make "hidden" always win */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* ---------- 2. The sky and its overlays ---------- */
+#sky { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; outline: none; }
+#sky:active { cursor: grabbing; }
+#labels, #leader { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; }
+#leader line { stroke: var(--ice); stroke-width: 1; stroke-dasharray: 3 4; opacity: .7; }
+
+.lbl {
+  position: absolute; left: 0; top: 0; white-space: nowrap;
+  font: 400 11px var(--f-mono); letter-spacing: .04em; color: rgba(238, 242, 255, .78);
+  text-shadow: 0 0 8px rgba(0, 0, 0, .9);
+  transition: opacity .5s var(--ease); will-change: transform;
+}
+.lbl.compass { font: 600 13px var(--f-display); color: var(--ice); letter-spacing: .12em; text-shadow: 0 0 12px rgba(159, 230, 255, .55); }
+.lbl.compass.minor { font: 400 10px var(--f-mono); opacity: .55; }
+
+/* The ring that locks onto a selected star */
+#reticle {
+  position: fixed; left: 0; top: 0; width: 44px; height: 44px; margin: -22px 0 0 -22px; pointer-events: none;
+  border-radius: 50%; border: 1px solid rgba(159, 230, 255, .8);
+  box-shadow: 0 0 18px rgba(159, 230, 255, .35), inset 0 0 12px rgba(159, 230, 255, .2);
+  animation: lock .7s var(--ease) both;
+}
+#reticle::after {
+  content: ""; position: absolute; inset: -8px; border-radius: 50%;
+  border: 1px dashed rgba(159, 230, 255, .45); animation: spin 12s linear infinite;
+}
+@keyframes lock { from { transform: scale(2.4); opacity: 0; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- 3. Glass: the frosted panel look ---------- */
+.glass {
+  position: relative;
+  background:
+    linear-gradient(140deg, rgba(170, 200, 255, .13), rgba(170, 200, 255, .025) 55%),
+    var(--glass-deep);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);       /* blurs the stars behind the panel */
+  border: 1px solid var(--edge);
+  border-radius: 20px;
+  box-shadow:
+    inset 0 1px 0 var(--edge-hi),                    /* light catching the top edge */
+    inset 0 0 0 1px rgba(255, 255, 255, .02),
+    0 24px 60px rgba(0, 0, 0, .45);
+}
+
+/* A beam of light that sweeps around the edge when a panel updates */
+@property --sweep { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.glass::before {
+  content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: conic-gradient(from var(--sweep), transparent 0 62%, rgba(159, 230, 255, .95) 76%, rgba(255, 214, 138, .7) 82%, transparent 92%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  opacity: 0;
+}
+.glass.sweep::before { animation: sweep 1.8s var(--ease); }
+@keyframes sweep { 0% { --sweep: 0deg; opacity: 1; } 85% { opacity: 1; } 100% { --sweep: 360deg; opacity: 0; } }
+
+/* Panels glide in on load: rise, sharpen and settle */
+.rise { animation: rise 1.1s var(--ease) both; animation-delay: var(--d, 0s); }
+@keyframes rise { from { opacity: 0; transform: translateY(16px) scale(.985); filter: blur(8px); } }
+
+/* ---------- 4. HUD layout ---------- */
+.hud {
+  position: fixed; inset: 0; pointer-events: none;
+  padding-block: max(18px, env(safe-area-inset-top, 0px)) max(18px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.hud > * { pointer-events: auto; }
+
+.brand { position: absolute; top: max(22px, env(safe-area-inset-top, 0px)); left: max(24px, env(safe-area-inset-left, 0px)); display: grid; gap: 4px; pointer-events: none; }
+.wordmark {
+  font: 600 28px/1 var(--f-display); letter-spacing: .22em; text-transform: uppercase;
+  background: linear-gradient(90deg, #ffffff, var(--ice) 60%, #ffffff);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: 0 0 30px rgba(159, 230, 255, .25);
+}
+.tag { font: 400 11px var(--f-mono); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+
+.dock {
+  position: absolute; top: max(18px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px; border-radius: 999px; max-width: calc(100% - 32px);
+}
+.dock select {
+  background: transparent; border: 0; padding: 8px 10px 8px 14px; border-radius: 999px; cursor: pointer;
+  font: 600 14px var(--f-body);
+}
+.dock select option { background: #0b1124; color: var(--fg); }
+.chip {
+  background: rgba(255, 255, 255, .05); border: 1px solid var(--edge); border-radius: 999px;
+  padding: 7px 13px; font-size: 13px; cursor: pointer; transition: border-color .3s var(--ease), background .3s var(--ease);
+}
+.chip:hover { border-color: var(--ice); background: rgba(159, 230, 255, .1); }
+.chip.go { color: var(--void); background: var(--ice); border-color: var(--ice); font-weight: 600; }
+.coords { display: flex; gap: 6px; align-items: center; flex-basis: 100%; justify-content: flex-end; padding: 4px 6px 2px; }
+.coords label { font: 400 12px var(--f-mono); color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.coords input { width: 86px; background: rgba(0, 0, 0, .25); border: 1px solid var(--edge); border-radius: 10px; padding: 6px 8px; font: 13px var(--f-mono); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
+
+.report, .card { width: 310px; padding: 20px 20px 18px; display: grid; gap: 4px; }
+.report { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); top: 92px; }
+.card {
+  position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); bottom: max(76px, calc(env(safe-area-inset-bottom, 0px) + 60px));
+  animation: slide-in .7s var(--ease) both;
+}
+@keyframes slide-in { from { opacity: 0; transform: translateX(-24px); filter: blur(6px); } }
+
+.eyebrow { font: 400 10.5px var(--f-mono); letter-spacing: .22em; text-transform: uppercase; color: var(--ice); }
+.place { font: 600 24px/1.15 var(--f-display); letter-spacing: .01em; margin-top: 4px; text-wrap: balance; }
+.sub { font: 400 12px var(--f-mono); color: var(--muted); }
+.facts { display: grid; gap: 12px; margin-top: 14px; }
+.fact { display: grid; gap: 1px; padding-top: 12px; border-top: 1px solid rgba(190, 215, 255, .1); }
+.fact span { font: 400 10.5px var(--f-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.fact b { font: 400 19px var(--f-body); font-variant-numeric: tabular-nums; }
+.fact small { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+#f-count { font-family: var(--f-mono); font-weight: 500; color: var(--gold); text-shadow: 0 0 18px rgba(255, 214, 138, .35); }
+.card .facts { grid-template-columns: 1fr 1fr; column-gap: 16px; }
+.card .fact.wide { grid-column: 1 / -1; }
+.close {
+  position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(255, 255, 255, .05); border: 1px solid var(--edge); cursor: pointer; font-size: 18px; line-height: 1;
+}
+.close:hover { border-color: var(--ice); }
+.credit { margin: 14px 0 0; font-size: 10.5px; color: var(--muted); opacity: .75; }
+
+.facing {
+  position: absolute; left: 0; right: 0; margin-inline: auto; width: fit-content; bottom: max(18px, env(safe-area-inset-bottom, 0px));
+  display: grid; justify-items: center; gap: 2px; pointer-events: none; text-align: center;
+}
+.facing b { font: 600 13px var(--f-display); letter-spacing: .14em; text-transform: uppercase; color: var(--ice); text-shadow: 0 0 14px rgba(159, 230, 255, .4); }
+.facing span { font-size: 12px; color: var(--muted); }
+
+.toast {
+  position: absolute; top: 84px; left: 0; right: 0; margin-inline: auto; width: fit-content;
+  padding: 10px 16px; border-radius: 14px; font-size: 13px; max-width: min(440px, calc(100% - 32px)); text-align: center;
+  animation: rise .6s var(--ease) both;
+}
+
+/* ---------- 5. Phones: stack things and keep the sky visible ---------- */
+@media (max-width: 760px) {
+  .brand { top: max(16px, env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); }
+  .wordmark { font-size: 20px; }
+  .dock { top: max(62px, calc(env(safe-area-inset-top, 0px) + 50px)); left: max(16px, env(safe-area-inset-left, 0px)); right: auto; }
+  .report, .card {
+    left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); width: auto;
+    top: auto; bottom: max(64px, calc(env(safe-area-inset-bottom, 0px) + 54px)); padding: 14px 16px;
+  }
+  .report .facts { grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-top: 8px; }
+  .report .fact small, .credit { display: none; }
+  .place { font-size: 19px; }
+  .fact b { font-size: 16px; }
+  .hud.card-open .report { display: none; }
+  .facing span { display: none; }
+}
+
+/* ---------- 6. Hover, constellations, toggles ---------- */
+.lbl.star { cursor: pointer; padding: 2px 4px; border-radius: 6px; }
+.lbl.star:hover { color: var(--ice); background: rgba(10, 16, 34, .55); }
+.lbl.con { font: 400 10px var(--f-display); letter-spacing: .32em; text-transform: uppercase; color: rgba(159, 200, 255, .6); }
+.lbl.con.focus { font-size: 14px; letter-spacing: .28em; color: var(--ice); text-shadow: 0 0 16px rgba(159, 230, 255, .6); }
+
+/* The soft ring and name that appear when you point near a star */
+#hover {
+  position: fixed; left: 0; top: 0; width: 30px; height: 30px; margin: -15px 0 0 -15px; pointer-events: none;
+  border-radius: 50%; border: 1px solid rgba(255, 255, 255, .55); box-shadow: 0 0 14px rgba(159, 230, 255, .35);
+}
+#hover-tip {
+  position: fixed; left: 0; top: 0; margin: 22px 0 0 18px; padding: 7px 11px; border-radius: 12px; pointer-events: none;
+  display: grid; gap: 1px; white-space: nowrap;
+}
+#hover-tip b { font: 600 13px var(--f-body); }
+#hover-tip span { font: 400 11px var(--f-mono); color: var(--muted); }
+
+.chip[aria-pressed="true"] { border-color: var(--ice); color: var(--ice); background: rgba(159, 230, 255, .12); }
+#daylight-toggle[aria-pressed="false"] { border-color: var(--gold); color: var(--gold); background: rgba(255, 214, 138, .1); }
+
+/* "Brightest up now" is a button that takes you to that star */
+.link {
+  justify-self: start; background: none; border: 0; padding: 0; cursor: pointer; text-align: left;
+  font: 400 19px var(--f-body); color: var(--fg);
+  text-decoration: underline; text-decoration-color: rgba(159, 230, 255, .5); text-underline-offset: 4px;
+}
+.link:hover { color: var(--ice); }
+.toast { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; }
+.toast .chip { padding: 5px 12px; }
+@media (max-width: 760px) { .link { font-size: 16px; } .dock .chip { padding: 6px 10px; font-size: 12px; } }
+
+/* ---------- 7. Planets, the solar system view, and switching between views ---------- */
+.lbl.planet {
+  cursor: pointer; padding: 2px 6px; border-radius: 6px;
+  font: 600 11.5px var(--f-body); letter-spacing: .06em; color: var(--gold);
+  text-shadow: 0 0 10px rgba(255, 214, 138, .45), 0 0 6px rgba(0, 0, 0, .9);
+}
+.lbl.planet:hover { background: rgba(10, 16, 34, .6); }
+.lbl.here { color: var(--ice); text-shadow: 0 0 12px rgba(159, 230, 255, .6), 0 0 6px rgba(0, 0, 0, .9); }
+
+/* Planet buttons in the report */
+.pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 2px; }
+.pill {
+  padding: 4px 11px; border-radius: 999px; cursor: pointer; font: 600 12.5px var(--f-body); color: var(--gold);
+  background: rgba(255, 214, 138, .08); border: 1px solid rgba(255, 214, 138, .35);
+  transition: background .3s var(--ease), border-color .3s var(--ease);
+}
+.pill:hover { background: rgba(255, 214, 138, .18); border-color: var(--gold); }
+
+/* Only one view's controls show at a time */
+body:not(.space-mode) .space-only { display: none !important; }
+body.space-mode .sky-only { display: none !important; }
+.space-btn { color: var(--gold); border-color: rgba(255, 214, 138, .45); }
+.space-btn:hover { border-color: var(--gold); background: rgba(255, 214, 138, .1); }
+
+/* The solar system panel */
+.planet-list { display: grid; gap: 2px; margin-top: 12px; }
+.planet-row {
+  display: grid; grid-template-columns: 12px 1fr auto; grid-template-rows: auto auto; column-gap: 10px; align-items: center;
+  text-align: left; padding: 8px 10px; border-radius: 12px; cursor: pointer;
+  background: transparent; border: 1px solid transparent; transition: background .3s var(--ease), border-color .3s var(--ease);
+}
+.planet-row:hover { background: rgba(159, 230, 255, .07); border-color: var(--edge); }
+.planet-row i { width: 10px; height: 10px; border-radius: 50%; grid-row: 1 / 3; box-shadow: 0 0 10px currentColor; }
+.planet-row .pn { font: 600 14px var(--f-body); }
+.planet-row .pn em { font: 400 10px var(--f-mono); font-style: normal; color: var(--ice); letter-spacing: .14em; text-transform: uppercase; margin-left: 4px; }
+.planet-row .pd { font: 400 11.5px var(--f-mono); color: var(--muted); grid-column: 2; font-variant-numeric: tabular-nums; }
+.planet-row .pu { grid-column: 3; grid-row: 1 / 3; font: 400 10px var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--gold); }
+
+/* Time controls */
+.timebar {
+  position: absolute; left: 0; right: 0; margin-inline: auto; width: fit-content; max-width: calc(100% - 32px);
+  bottom: max(18px, env(safe-area-inset-bottom, 0px));
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 6px; border-radius: 999px;
+}
+.timebar .chip { font: 500 12.5px var(--f-mono); }
+
+/* The warp: the screen fills with a rush of light, then clears */
+#warp {
+  position: fixed; inset: 0; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(220, 240, 255, .95), rgba(120, 170, 255, .55) 22%, rgba(3, 5, 12, 1) 70%);
+  transition: opacity .55s var(--ease);
+}
+#warp.on { opacity: 1; }
+
+@media (max-width: 760px) {
+  #space-panel { top: auto; bottom: max(70px, calc(env(safe-area-inset-bottom, 0px) + 60px)); max-height: 36vh; overflow-y: auto; }
+  .hud.card-open #space-panel { display: none; }
+  .planet-row { padding: 6px 8px; }
+  .timebar .chip { padding: 5px 9px; font-size: 11.5px; }
+}
+
+/* ---------- 8. Respect people who turn off motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .rise, .card, .toast, #reticle, #reticle::after { animation: none; }
+  .glass.sweep::before { animation: none; }
+  .lbl { transition: none; }
+  #warp { transition: none; }
+}
